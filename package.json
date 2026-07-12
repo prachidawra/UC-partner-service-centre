@@ -1,0 +1,17 @@
+{
+  "name": "uc-repair-booking-webapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone repair slot booking web app for partners, backed by Google Sheets via a service account.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "googleapis": "^140.0.1"
+  }
+}

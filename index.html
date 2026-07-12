@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UC Partner Service Centre - Book your repair slot</title>
+  <style>
+    :root {
+      --blue: #1a73e8;
+      --green: #1e8e3e;
+      --red: #d93025;
+      --gray: #5f6368;
+      --bg: #f5f6f8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans', Arial, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      padding: 0;
+      color: #202124;
+    }
+    .wrap { max-width: 480px; margin: 0 auto; padding: 16px; }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    }
+    .lang-toggle-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 10px;
+    }
+    .title-block {
+      margin-bottom: 22px;
+    }
+    .brand {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      color: #202124;
+      text-align: center;
+      margin-bottom: 22px;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0;
+      text-align: left;
+      color: var(--blue);
+    }
+    .lang-toggle {
+      display: flex;
+      border: 1px solid var(--blue);
+      border-radius: 20px;
+      overflow: hidden;
+      font-size: 13px;
+    }
+    .lang-toggle button {
+      border: none;
+      background: #fff;
+      color: var(--blue);
+      padding: 6px 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .lang-toggle button.active {
+      background: var(--blue);
+      color: #fff;
+    }
+    label {
+      display: block;
+      font-size: 15px;
+      font-weight: 600;
+      margin: 16px 0 6px;
+    }
+    input, select {
+      width: 100%;
+      font-size: 17px;
+      padding: 14px 12px;
+      border-radius: 10px;
+      border: 1.5px solid #c7c9cc;
+      background: #fff;
+      min-height: 50px;
+    }
+    input:focus, select:focus {
+      border-color: var(--blue);
+      outline: none;
+    }
+    select:disabled, input:disabled { background: #eee; color: #999; }
+    .hint { font-size: 12.5px; color: var(--gray); margin-top: 4px; }
+    button.submit {
+      width: 100%;
+      margin-top: 22px;
+      padding: 16px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--blue);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      min-height: 54px;
+    }
+    button.submit:disabled { background: #9db9e8; cursor: not-allowed; }
+    .error-box {
+      background: #fce8e6;
+      color: var(--red);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-top: 14px;
+      display: none;
+    }
+    .slot-note { font-size: 13px; color: var(--gray); margin-top: -2px; margin-bottom: 4px; }
+    /* success screen */
+    .success-wrap { text-align: center; padding: 10px 0; }
+    .success-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--green); color: #fff;
+      font-size: 34px; line-height: 64px; margin: 0 auto 14px;
+    }
+    .success-title { font-size: 19px; font-weight: 700; color: var(--green); margin-bottom: 10px; }
+    .detail-row { display: flex; justify-content: space-between; padding: 8px 4px; border-bottom: 1px solid #eee; font-size: 15px; text-align: left; }
+    .detail-row span:first-child { color: var(--gray); }
+    .again-btn {
+      margin-top: 20px; width: 100%; padding: 14px; font-size: 16px; font-weight: 600;
+      background: #fff; color: var(--blue); border: 1.5px solid var(--blue); border-radius: 10px; cursor: pointer; min-height: 50px;
+    }
+    .spinner {
+      display: inline-block; width: 18px; height: 18px; border: 3px solid #fff;
+      border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-row { text-align: center; padding: 30px 0; color: var(--gray); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="lang-toggle-row">
+        <div class="lang-toggle">
+          <button id="btnEn" class="active" onclick="setLang('en')">EN</button>
+          <button id="btnHi" onclick="setLang('hi')">हिं</button>
+        </div>
+      </div>
+      <div class="title-block">
+        <div class="brand">UC Partner Service Centre</div>
+        <h1 data-i18n="title">Book your repair slot</h1>
+      </div>
+
+      <div id="loadingScreen" class="loading-row" data-i18n="loading">Loading form...</div>
+
+      <form id="bookingForm" style="display:none;">
+        <label data-i18n="name">Your Name</label>
+        <input type="text" id="name" autocomplete="name" required>
+
+        <label data-i18n="phone">Phone Number</label>
+        <input type="tel" id="phone" inputmode="numeric" maxlength="10" placeholder="10 digit mobile number" required>
+
+        <label data-i18n="city">City</label>
+        <select id="city" required>
+          <option value="" data-i18n="selectCity">-- Select City --</option>
+        </select>
+
+        <label data-i18n="tool">Tool Name</label>
+        <select id="tool" required>
+          <option value="" data-i18n="selectTool">-- Select Tool --</option>
+        </select>
+
+        <label data-i18n="date">Date</label>
+        <select id="date" required disabled>
+          <option value="" data-i18n="selectCityFirst">-- Select city first --</option>
+        </select>
+
+        <label data-i18n="slot">Time Slot</label>
+        <select id="slot" required disabled>
+          <option value="" data-i18n="selectDateFirst">-- Select date first --</option>
+        </select>
+        <div class="slot-note" id="slotNote"></div>
+
+        <div class="error-box" id="errorBox"></div>
+
+        <button type="submit" class="submit" id="submitBtn">
+          <span data-i18n="submit">Book Slot</span>
+        </button>
+      </form>
+
+      <div id="successScreen" class="success-wrap" style="display:none;">
+        <div class="success-icon">&#10003;</div>
+        <div class="success-title" id="successTitle">Booking confirmed!</div>
+        <div id="successDetails"></div>
+        <button class="again-btn" onclick="resetForm()" data-i18n="bookAgain">Book Another Slot</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const I18N = {
+    en: {
+      title: 'Book your repair slot', loading: 'Loading form...', name: 'Your Name',
+      phone: 'Phone Number', city: 'City', selectCity: '-- Select City --',
+      tool: 'Tool Name', selectTool: '-- Select Tool --', date: 'Date',
+      selectCityFirst: '-- Select city first --', slot: 'Time Slot',
+      selectDateFirst: '-- Select date first --', submit: 'Book Slot',
+      bookAgain: 'Book Another Slot', slotsLeft: 'slots left',
+      noSlots: 'No slots available for this city right now.',
+      submitting: 'Booking...', fillAll: 'Please fill all fields correctly.',
+      loadError: 'Could not load the form. Please refresh and try again.'
+    },
+    hi: {
+      title: 'अपना रिपेयर स्लॉट बुक करें', loading: 'फॉर्म लोड हो रहा है...', name: 'आपका नाम',
+      phone: 'फ़ोन नंबर', city: 'शहर', selectCity: '-- शहर चुनें --',
+      tool: 'टूल का नाम', selectTool: '-- टूल चुनें --', date: 'तारीख',
+      selectCityFirst: '-- पहले शहर चुनें --', slot: 'समय स्लॉट',
+      selectDateFirst: '-- पहले तारीख चुनें --', submit: 'स्लॉट बुक करें',
+      bookAgain: 'दूसरा स्लॉट बुक करें', slotsLeft: 'स्लॉट बचे हैं',
+      noSlots: 'अभी इस शहर में कोई स्लॉट उपलब्ध नहीं है।',
+      submitting: 'बुक हो रहा है...', fillAll: 'कृपया सभी जानकारी सही से भरें।',
+      loadError: 'फॉर्म लोड नहीं हो सका। कृपया दोबारा कोशिश करें।'
+    }
+  };
+
+  let lang = 'en';
+  let slotsData = []; // cached /api/slots?city=... result
+
+  function t(key) { return I18N[lang][key] || key; }
+
+  function setLang(l) {
+    lang = l;
+    document.getElementById('btnEn').classList.toggle('active', l === 'en');
+    document.getElementById('btnHi').classList.toggle('active', l === 'hi');
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    renderDateOptions();
+    renderSlotOptions();
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('errorBox');
+    box.textContent = msg;
+    box.style.display = 'block';
+  }
+  function hideError() {
+    document.getElementById('errorBox').style.display = 'none';
+  }
+
+  // ---- initial load: cities + tools ----
+  fetch('/api/form-data')
+    .then(r => r.json())
+    .then(data => {
+      const citySel = document.getElementById('city');
+      const toolSel = document.getElementById('tool');
+      (data.cities || []).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c; opt.textContent = c;
+        citySel.appendChild(opt);
+      });
+      (data.tools || []).forEach(tName => {
+        const opt = document.createElement('option');
+        opt.value = tName; opt.textContent = tName;
+        toolSel.appendChild(opt);
+      });
+      document.getElementById('loadingScreen').style.display = 'none';
+      document.getElementById('bookingForm').style.display = 'block';
+    })
+    .catch(() => {
+      document.getElementById('loadingScreen').textContent = t('loadError');
+    });
+
+  // ---- when city changes, fetch available dates/slots ----
+  document.getElementById('city').addEventListener('change', function () {
+    const city = this.value;
+    const dateSel = document.getElementById('date');
+    const slotSel = document.getElementById('slot');
+    dateSel.disabled = true;
+    slotSel.disabled = true;
+    slotsData = [];
+    dateSel.innerHTML = '<option value="">' + t('loading') + '</option>';
+    slotSel.innerHTML = '<option value="">' + t('selectDateFirst') + '</option>';
+    hideError();
+
+    if (!city) return;
+
+    fetch('/api/slots?city=' + encodeURIComponent(city))
+      .then(r => r.json())
+      .then(result => {
+        slotsData = result || [];
+        renderDateOptions();
+      })
+      .catch(() => showError(t('loadError')));
+  });
+
+  function renderDateOptions() {
+    const dateSel = document.getElementById('date');
+    dateSel.innerHTML = '';
+    if (!slotsData.length) {
+      dateSel.innerHTML = '<option value="">' + t('noSlots') + '</option>';
+      dateSel.disabled = true;
+      return;
+    }
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = lang === 'en' ? '-- Select Date --' : '-- तारीख चुनें --';
+    dateSel.appendChild(placeholder);
+    slotsData.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.date;
+      opt.textContent = d.display;
+      dateSel.appendChild(opt);
+    });
+    dateSel.disabled = false;
+  }
+
+  document.getElementById('date').addEventListener('change', renderSlotOptions);
+
+  function renderSlotOptions() {
+    const dateSel = document.getElementById('date');
+    const slotSel = document.getElementById('slot');
+    const dateVal = dateSel.value;
+    slotSel.innerHTML = '';
+    if (!dateVal) {
+      slotSel.innerHTML = '<option value="">' + t('selectDateFirst') + '</option>';
+      slotSel.disabled = true;
+      return;
+    }
+    const dayObj = slotsData.find(d => d.date === dateVal);
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = lang === 'en' ? '-- Select Slot --' : '-- स्लॉट चुनें --';
+    slotSel.appendChild(placeholder);
+    if (dayObj) {
+      dayObj.slots.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.slot;
+        opt.textContent = s.slot + ' (' + s.available + ' ' + t('slotsLeft') + ')';
+        slotSel.appendChild(opt);
+      });
+    }
+    slotSel.disabled = false;
+  }
+
+  // ---- submit ----
+  document.getElementById('bookingForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    hideError();
+
+    const name = document.getElementById('name').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const city = document.getElementById('city').value;
+    const tool = document.getElementById('tool').value;
+    const date = document.getElementById('date').value;
+    const slot = document.getElementById('slot').value;
+
+    if (!name || !/^\d{10}$/.test(phone) || !city || !tool || !date || !slot) {
+      showError(t('fillAll'));
+      return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>' + t('submitting');
+
+    fetch('/api/book', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone, city, tool, date, slot })
+    })
+      .then(r => r.json())
+      .then(res => {
+        btn.disabled = false;
+        btn.innerHTML = '<span data-i18n="submit">' + t('submit') + '</span>';
+        if (res.success) {
+          showSuccess(res.details);
+        } else {
+          showError(res.message || t('loadError'));
+          if (res.slotFilled) {
+            document.getElementById('city').dispatchEvent(new Event('change'));
+          }
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<span data-i18n="submit">' + t('submit') + '</span>';
+        showError(err.message || t('loadError'));
+      });
+  });
+
+  function showSuccess(details) {
+    document.getElementById('bookingForm').style.display = 'none';
+    document.getElementById('successScreen').style.display = 'block';
+    const box = document.getElementById('successDetails');
+    box.innerHTML = '';
+    const rows = [
+      [t('name'), details.name],
+      [t('phone'), details.phone],
+      [t('city'), details.city],
+      [t('tool'), details.tool],
+      [t('date'), details.date],
+      [t('slot'), details.slot]
+    ];
+    rows.forEach(([k, v]) => {
+      const div = document.createElement('div');
+      div.className = 'detail-row';
+      div.innerHTML = '<span>' + k + '</span><span>' + v + '</span>';
+      box.appendChild(div);
+    });
+  }
+
+  function resetForm() {
+    document.getElementById('bookingForm').reset();
+    document.getElementById('successScreen').style.display = 'none';
+    document.getElementById('bookingForm').style.display = 'block';
+    document.getElementById('date').innerHTML = '<option value="">' + t('selectCityFirst') + '</option>';
+    document.getElementById('date').disabled = true;
+    document.getElementById('slot').innerHTML = '<option value="">' + t('selectDateFirst') + '</option>';
+    document.getElementById('slot').disabled = true;
+  }
+</script>
+</body>
+</html>
