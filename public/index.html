@@ -114,6 +114,33 @@
       display: none;
     }
     .slot-note { font-size: 13px; color: var(--gray); margin-top: -2px; margin-bottom: 4px; }
+    .tool-checklist {
+      border: 1.5px solid #c7c9cc;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .tool-check-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 14px;
+      border-bottom: 1px solid #eee;
+      min-height: 50px;
+      cursor: pointer;
+    }
+    .tool-check-row:last-child { border-bottom: none; }
+    .tool-check-row input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      min-height: auto;
+      flex-shrink: 0;
+      accent-color: var(--blue);
+    }
+    .tool-check-row span {
+      font-size: 16px;
+      color: #202124;
+    }
+    .tool-hint { font-size: 12.5px; color: var(--gray); margin: 4px 0 0; }
     /* success screen */
     .success-wrap { text-align: center; padding: 10px 0; }
     .success-icon {
@@ -165,9 +192,8 @@
         </select>
 
         <label data-i18n="tool">Tool Name</label>
-        <select id="tool" required>
-          <option value="" data-i18n="selectTool">-- Select Tool --</option>
-        </select>
+        <div class="tool-checklist" id="toolChecklist"></div>
+        <div class="tool-hint" data-i18n="toolHint">Select all tools that apply</div>
 
         <label data-i18n="date">Date</label>
         <select id="date" required disabled>
@@ -201,23 +227,25 @@
     en: {
       title: 'Book your repair slot', loading: 'Loading form...', name: 'Your Name',
       phone: 'Phone Number', city: 'City', selectCity: '-- Select City --',
-      tool: 'Tool Name', selectTool: '-- Select Tool --', date: 'Date',
+      tool: 'Tool Name', selectTool: '-- Select Tool --', toolHint: 'Select all tools that apply', date: 'Date',
       selectCityFirst: '-- Select city first --', slot: 'Time Slot',
       selectDateFirst: '-- Select date first --', submit: 'Book Slot',
       bookAgain: 'Book Another Slot', slotsLeft: 'slots left',
       noSlots: 'No slots available for this city right now.',
       submitting: 'Booking...', fillAll: 'Please fill all fields correctly.',
+      selectOneTool: 'Please select at least one tool.',
       loadError: 'Could not load the form. Please refresh and try again.'
     },
     hi: {
       title: 'अपना रिपेयर स्लॉट बुक करें', loading: 'फॉर्म लोड हो रहा है...', name: 'आपका नाम',
       phone: 'फ़ोन नंबर', city: 'शहर', selectCity: '-- शहर चुनें --',
-      tool: 'टूल का नाम', selectTool: '-- टूल चुनें --', date: 'तारीख',
+      tool: 'टूल का नाम', selectTool: '-- टूल चुनें --', toolHint: 'जितने लागू हों उतने टूल चुनें', date: 'तारीख',
       selectCityFirst: '-- पहले शहर चुनें --', slot: 'समय स्लॉट',
       selectDateFirst: '-- पहले तारीख चुनें --', submit: 'स्लॉट बुक करें',
       bookAgain: 'दूसरा स्लॉट बुक करें', slotsLeft: 'स्लॉट बचे हैं',
       noSlots: 'अभी इस शहर में कोई स्लॉट उपलब्ध नहीं है।',
       submitting: 'बुक हो रहा है...', fillAll: 'कृपया सभी जानकारी सही से भरें।',
+      selectOneTool: 'कृपया कम से कम एक टूल चुनें।',
       loadError: 'फॉर्म लोड नहीं हो सका। कृपया दोबारा कोशिश करें।'
     }
   };
@@ -252,16 +280,25 @@
     .then(r => r.json())
     .then(data => {
       const citySel = document.getElementById('city');
-      const toolSel = document.getElementById('tool');
+      const toolList = document.getElementById('toolChecklist');
       (data.cities || []).forEach(c => {
         const opt = document.createElement('option');
         opt.value = c; opt.textContent = c;
         citySel.appendChild(opt);
       });
-      (data.tools || []).forEach(tName => {
-        const opt = document.createElement('option');
-        opt.value = tName; opt.textContent = tName;
-        toolSel.appendChild(opt);
+      (data.tools || []).forEach((tName, i) => {
+        const row = document.createElement('label');
+        row.className = 'tool-check-row';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = tName;
+        cb.name = 'tool';
+        cb.id = 'tool_' + i;
+        const span = document.createElement('span');
+        span.textContent = tName;
+        row.appendChild(cb);
+        row.appendChild(span);
+        toolList.appendChild(row);
       });
       document.getElementById('loadingScreen').style.display = 'none';
       document.getElementById('bookingForm').style.display = 'block';
@@ -350,12 +387,17 @@
     const name = document.getElementById('name').value.trim();
     const phone = document.getElementById('phone').value.trim();
     const city = document.getElementById('city').value;
-    const tool = document.getElementById('tool').value;
+    const checkedTools = Array.from(document.querySelectorAll('#toolChecklist input[type="checkbox"]:checked')).map(cb => cb.value);
+    const tool = checkedTools.join(', ');
     const date = document.getElementById('date').value;
     const slot = document.getElementById('slot').value;
 
-    if (!name || !/^\d{10}$/.test(phone) || !city || !tool || !date || !slot) {
+    if (!name || !/^\d{10}$/.test(phone) || !city || !date || !slot) {
       showError(t('fillAll'));
+      return;
+    }
+    if (checkedTools.length === 0) {
+      showError(t('selectOneTool'));
       return;
     }
 
