@@ -248,13 +248,17 @@ app.post('/api/book', async (req, res) => {
 async function handleBooking(payload) {
   const name = (payload.name || '').toString().trim();
   const phone = (payload.phone || '').toString().trim();
+  const partnerId = (payload.partnerId || '').toString().trim();
   const city = (payload.city || '').toString().trim();
   const tool = (payload.tool || '').toString().trim();
   const dateKey = (payload.date || '').toString().trim();
   const slot = (payload.slot || '').toString().trim();
 
+  const phoneValid = /^\d{10}$/.test(phone);
+
   if (!name) return { success: false, message: 'Please enter name. / कृपया नाम भरें।' };
-  if (!/^\d{10}$/.test(phone)) return { success: false, message: 'Please enter a valid 10-digit phone number. / कृपया सही 10 अंकों का फ़ोन नंबर भरें।' };
+  if (!phoneValid && !partnerId) return { success: false, message: 'Please enter phone number or Partner ID. / कृपया फ़ोन नंबर या पार्टनर ID भरें।' };
+  if (phone && !phoneValid) return { success: false, message: 'Please enter a valid 10-digit phone number. / कृपया सही 10 अंकों का फ़ोन नंबर भरें।' };
   if (!city || !tool || !dateKey || !slot) return { success: false, message: 'Please fill all fields. / कृपया सभी जानकारी भरें।' };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return { success: false, message: 'Invalid date.' };
 
@@ -273,10 +277,13 @@ async function handleBooking(payload) {
 
   const appendRes = await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_BOOKINGS}!A:G`,
+    range: `${SHEET_BOOKINGS}!A:H`,
     valueInputOption: 'RAW',
     insertDataOption: 'INSERT_ROWS',
-    requestBody: { values: [[timestamp, name, phone, city, tool, dateSerial, slot]] }
+    // Partner ID is appended as column H (after Slot) rather than inserted
+    // next to Phone, so the existing City/Tool/Date/Slot columns (D-G) that
+    // Hourly_Capacity and Tomorrow_Summary formulas already point at don't shift.
+    requestBody: { values: [[timestamp, name, phone, city, tool, dateSerial, slot, partnerId]] }
   });
 
   // cosmetic: format the newly-written Date cell as yyyy-mm-dd so it reads nicely in the sheet
@@ -306,7 +313,7 @@ async function handleBooking(payload) {
   return {
     success: true,
     message: 'Booking confirmed! / बुकिंग पक्की हो गई!',
-    details: { name, phone, city, tool, date: dateKey, slot }
+    details: { name, phone, partnerId, city, tool, date: dateKey, slot }
   };
 }
 
