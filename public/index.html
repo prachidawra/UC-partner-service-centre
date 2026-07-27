@@ -184,7 +184,11 @@
         <input type="text" id="name" autocomplete="name" required>
 
         <label data-i18n="phone">Phone Number</label>
-        <input type="tel" id="phone" inputmode="numeric" maxlength="10" placeholder="10 digit mobile number" required>
+        <input type="tel" id="phone" inputmode="numeric" maxlength="10" placeholder="10 digit mobile number">
+
+        <label data-i18n="partnerId">Partner ID</label>
+        <input type="text" id="partnerId" placeholder="Partner ID">
+        <div class="hint" data-i18n="phoneOrPartnerHint">Fill phone number or Partner ID (at least one)</div>
 
         <label data-i18n="city">City</label>
         <select id="city" required>
@@ -226,7 +230,9 @@
   const I18N = {
     en: {
       title: 'Book your repair slot', loading: 'Loading form...', name: 'Your Name',
-      phone: 'Phone Number', city: 'City', selectCity: '-- Select City --',
+      phone: 'Phone Number', partnerId: 'Partner ID',
+      phoneOrPartnerHint: 'Fill phone number or Partner ID (at least one)',
+      city: 'City', selectCity: '-- Select City --',
       tool: 'Tool Name', selectTool: '-- Select Tool --', toolHint: 'Select all tools that apply', date: 'Date',
       selectCityFirst: '-- Select city first --', slot: 'Time Slot',
       selectDateFirst: '-- Select date first --', submit: 'Book Slot',
@@ -234,11 +240,14 @@
       noSlots: 'No slots available for this city right now.',
       submitting: 'Booking...', fillAll: 'Please fill all fields correctly.',
       selectOneTool: 'Please select at least one tool.',
+      phoneOrPartnerRequired: 'Please enter phone number or Partner ID.',
       loadError: 'Could not load the form. Please refresh and try again.'
     },
     hi: {
       title: 'अपना रिपेयर स्लॉट बुक करें', loading: 'फॉर्म लोड हो रहा है...', name: 'आपका नाम',
-      phone: 'फ़ोन नंबर', city: 'शहर', selectCity: '-- शहर चुनें --',
+      phone: 'फ़ोन नंबर', partnerId: 'पार्टनर ID',
+      phoneOrPartnerHint: 'फ़ोन नंबर या पार्टनर ID भरें (कम से कम एक)',
+      city: 'शहर', selectCity: '-- शहर चुनें --',
       tool: 'टूल का नाम', selectTool: '-- टूल चुनें --', toolHint: 'जितने लागू हों उतने टूल चुनें', date: 'तारीख',
       selectCityFirst: '-- पहले शहर चुनें --', slot: 'समय स्लॉट',
       selectDateFirst: '-- पहले तारीख चुनें --', submit: 'स्लॉट बुक करें',
@@ -246,6 +255,7 @@
       noSlots: 'अभी इस शहर में कोई स्लॉट उपलब्ध नहीं है।',
       submitting: 'बुक हो रहा है...', fillAll: 'कृपया सभी जानकारी सही से भरें।',
       selectOneTool: 'कृपया कम से कम एक टूल चुनें।',
+      phoneOrPartnerRequired: 'कृपया फ़ोन नंबर या पार्टनर ID भरें।',
       loadError: 'फॉर्म लोड नहीं हो सका। कृपया दोबारा कोशिश करें।'
     }
   };
@@ -386,18 +396,28 @@
 
     const name = document.getElementById('name').value.trim();
     const phone = document.getElementById('phone').value.trim();
+    const partnerId = document.getElementById('partnerId').value.trim();
     const city = document.getElementById('city').value;
     const checkedTools = Array.from(document.querySelectorAll('#toolChecklist input[type="checkbox"]:checked')).map(cb => cb.value);
     const tool = checkedTools.join(', ');
     const date = document.getElementById('date').value;
     const slot = document.getElementById('slot').value;
+    const phoneValid = /^\d{10}$/.test(phone);
 
-    if (!name || !/^\d{10}$/.test(phone) || !city || !date || !slot) {
+    if (!name || !city || !date || !slot) {
       showError(t('fillAll'));
       return;
     }
     if (checkedTools.length === 0) {
       showError(t('selectOneTool'));
+      return;
+    }
+    if (!phoneValid && !partnerId) {
+      showError(t('phoneOrPartnerRequired'));
+      return;
+    }
+    if (phone && !phoneValid) {
+      showError(t('fillAll'));
       return;
     }
 
@@ -408,7 +428,7 @@
     fetch('/api/book', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, phone, city, tool, date, slot })
+      body: JSON.stringify({ name, phone, partnerId, city, tool, date, slot })
     })
       .then(r => r.json())
       .then(res => {
@@ -437,7 +457,8 @@
     box.innerHTML = '';
     const rows = [
       [t('name'), details.name],
-      [t('phone'), details.phone],
+      [t('phone'), details.phone || '-'],
+      [t('partnerId'), details.partnerId || '-'],
       [t('city'), details.city],
       [t('tool'), details.tool],
       [t('date'), details.date],
